@@ -70,9 +70,9 @@ test('number value', () => {
 
     // overflowed value save as string
     expect(parser.parse('k : 9007199254740991')).toEqual({k : 9007199254740991})
-    expect(parser.parse('k : 9007199254740993')).toEqual({k : '9007199254740993'})
+    expect(parser.parse('k : 9007199254740993')).toEqual({k : BigInt('9007199254740993')})
     expect(parser.parse('k : -9007199254740991')).toEqual({k : -9007199254740991})
-    expect(parser.parse('k : -9007199254740993')).toEqual({k : '-9007199254740993'})
+    expect(parser.parse('k : -9007199254740993')).toEqual({k : BigInt('-9007199254740993')})
 
     // invalid number format
     expect(() => parser.parse('k : 1z')).toThrow()

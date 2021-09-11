@@ -202,9 +202,14 @@ class TextProtobufParser {
         if (Number.isNaN(n))  {
             throw new ParseErr(`parse number failed: ${number_str}`, '')
         }
-        // if maybe overflow, return as string
+        if (!Number.isInteger(n)) {
+            // float
+            return n
+        }
+
+        // integer maybe overflow, return as BigInt
         if (n > Number.MAX_SAFE_INTEGER || n < Number.MIN_SAFE_INTEGER) {
-            return number_str
+            return BigInt(number_str)
         }
         return n
     }
