@@ -184,6 +184,14 @@ test('nested type', () => {
     expect(parser.parse('i: {j: [1,2,3]}')).toEqual({i: {j: [1,2,3]}})
     expect(parser.parse('i: {j: [1,2,3] j: 4}')).toEqual({i: {j: [1,2,3,4]}})
 
+    // array of enum
+    expect(parser.parse('i [Enum1, Enum2, true_]')).toEqual({i:
+            [
+                new TextProtobufParser.EnumValue('Enum1'),
+                new TextProtobufParser.EnumValue('Enum2'),
+                new TextProtobufParser.EnumValue('true_')
+            ]})
+
     // message in array
     expect(parser.parse('i: [{j:1 k:2}, {j:3 k:4}, ] i {j:4 k:6}')).toEqual({i: [{j:1, k:2}, {j:3, k:4}, {j:4, k:6}]})
 })
