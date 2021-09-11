@@ -27,6 +27,15 @@ class ParseErr extends Error {
     #err_i
 }
 
+class EnumValue {
+    /**
+     * @param v {String}
+     */
+    constructor(v) {
+        this.v = v
+    }
+}
+
 class TextProtobufParser {
     #s = ''
     #i = 0
@@ -150,15 +159,7 @@ class TextProtobufParser {
         this.#skipWhiteSpace()
 
         const ch = this.#next()
-        if (ch === 't') {
-            this.#consume('true')
-            return true
-        }
-        else if (ch === 'f') {
-            this.#consume('false')
-            return false
-        }
-        else if (ch === '"') {
+        if (ch === '"') {
             return this.#parseStringValue()
         }
         else if (ch === '[') {
@@ -170,7 +171,24 @@ class TextProtobufParser {
         else if (this.#isNextNumberChar()) {
             return this.#parseNumberValue()
         }
-        // TODO: enum value that encode as a simple token
+        else if (this.#isNextSimpleTokenChar()) {
+            // NOTE: must judge isNextNumberChar(), true/false token before isNextSimpleTokenChar()
+            const token = this.#parseSimpleToken()
+            // enum value that encode as a simple token
+            // it's not easy judge a token type without protobuf Message definition,
+            // i.e maybe a enum named true/false/nan, but we must assume the judging priority
+            if (token === 'true') {
+                return true
+            } else if (token === 'false') {
+                return false
+            } else if (token === 'nan') {
+                // NOTE: google text_format parser will recognize inf/-inf/infinity/-infinity/-nan also
+                // but only generate nan is current implementation
+                return Number.NaN
+            } else {
+                return new EnumValue(token)
+            }
+        }
         else {
             throw new ParseErr(`unexpected value leading character`, ch)
         }
@@ -318,6 +336,10 @@ class TextProtobufParser {
         return this.constructor.#number_set.has(this.#next())
     }
 
+    #isNextSimpleTokenChar() {
+        return this.constructor.#simple_token_char_set.has(this.#next())
+    }
+
     #parseSimpleToken() {
         return this.#parseToken(this.constructor.#simple_token_char_set)
     }
@@ -357,5 +379,7 @@ class TextProtobufParser {
 }
 
 module.exports = {
-    TextProtobufParser
+    ParseErr,
+    EnumValue,
+    TextProtobufParser,
 }

@@ -81,6 +81,20 @@ test('number value', () => {
     expect(() => parser.parse('k : 1.2.3')).toThrow()
 })
 
+test('nan value', () => {
+    let parser = new TextProtobufParser.TextProtobufParser()
+    expect(parser.parse('k : nan ')).toEqual({k : Number.NaN})
+})
+
+test('enum value', () => {
+    let parser = new TextProtobufParser.TextProtobufParser()
+    expect(parser.parse('k : kEnum1_')).toEqual({k : new TextProtobufParser.EnumValue('kEnum1_')})
+    expect(parser.parse('k : t')).toEqual({k : new TextProtobufParser.EnumValue('t')})
+    expect(parser.parse('k : true_')).toEqual({k : new TextProtobufParser.EnumValue('true_')})
+    expect(parser.parse('k : false_')).toEqual({k : new TextProtobufParser.EnumValue('false_')})
+    expect(parser.parse('k : nan_')).toEqual({k : new TextProtobufParser.EnumValue('nan_')})
+})
+
 test('string value', () => {
     let parser = new TextProtobufParser.TextProtobufParser()
     // empty
