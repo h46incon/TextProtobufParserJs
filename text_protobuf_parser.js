@@ -31,12 +31,34 @@ class TextProtobufParser {
                 break
             }
             const field =  this.#parseField()
-            // TODO: handler repeated
-            Object.defineProperty(msg, field.name, {
-                configurable: true,
-                enumerable: true,
-                value: field.value,
-            })
+            if (field.name in msg) {
+                // field already in msg, is a repeated field
+                let new_val = msg[field.name]
+                if (Array.isArray(new_val)) {
+                    // protobuf could define repeated of repeated
+                    // thus if a value is array, is must be a repeated value itself, not a elem of repeated value
+                }
+                else {
+                    new_val = [new_val]
+                }
+
+                if (Array.isArray(field.value)) {
+                    new_val = new_val.concat(field.value)
+                }
+                else {
+                    new_val.push(field.value)
+                }
+                msg[field.name] = new_val
+            }
+            else {
+                // single field
+                Object.defineProperty(msg, field.name, {
+                    configurable: true,
+                    enumerable: true,
+                    writable: true,
+                    value: field.value,
+                })
+            }
         }
         return msg
     }

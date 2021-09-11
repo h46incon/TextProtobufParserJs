@@ -123,6 +123,15 @@ test('short repeated value', () => {
 
 })
 
+test ('repetitive field name', () => {
+    let parser = new TextProtobufParser.TextProtobufParser()
+    expect(parser.parse('i:1 j:2 i:3 k:4 j:5')).toEqual({i: [1,3], j: [2, 5], k: 4})
+    expect(parser.parse('i:1 j:2 i:3 i:4 i:5')).toEqual({i: [1,3,4,5], j: 2})
+    expect(parser.parse('i:[1] i:2')).toEqual({i: [1,2]})
+    expect(parser.parse('i:[1,2] i:[3,4] i:5')).toEqual({i: [1,2,3,4,5]})
+    expect(parser.parse('i:1 i:[3,4]')).toEqual({i: [1,3,4]})
+})
+
 test('message value', () => {
     let parser = new TextProtobufParser.TextProtobufParser()
     expect(parser.parse('i: {j: 1}')).toEqual({i: {j: 1}})
