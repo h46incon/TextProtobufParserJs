@@ -7,6 +7,8 @@ class ParseErr extends Error {
         this.message = `${this.message}, error index: ${this.#err_i}`
     }
 
+    // TODO: override toString()
+
     constructor(parse_err_msg, cur_ch) {
         super();
         this.name = 'ParserError'
@@ -211,8 +213,13 @@ class TextProtobufParser {
         }
 
         const uint8_array = new Uint8Array(bytes)
-        const utf8_decoder = new TextDecoder('utf-8')
-        return utf8_decoder.decode(uint8_array)
+        const utf8_decoder = new TextDecoder('utf-8', {fatal: true})
+        try {
+            return utf8_decoder.decode(uint8_array)
+        } catch(e) {
+            // could not decode into utf8 string, maybe a protobuf bytes value, return bytes directly
+            return uint8_array
+        }
     }
 
     #parseEscapedUint8() {

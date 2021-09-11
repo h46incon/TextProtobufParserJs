@@ -104,6 +104,12 @@ test('string value', () => {
     expect(() => parser.parse('k : "\\[')).toThrow()
 })
 
+test('bytes value', () => {
+    let parser = new TextProtobufParser.TextProtobufParser()
+    expect(parser.parse(String.raw`k : "\377\376\375" `)).toEqual({k : new Uint8Array([255, 254, 253])})
+    expect(parser.parse(String.raw`k : "012\377\376\375" `)).toEqual({k : new Uint8Array([48, 49, 50, 255, 254, 253])})
+})
+
 test('short repeated value', () => {
     let parser = new TextProtobufParser.TextProtobufParser()
     expect(() => parser.parse('k : [')).toThrow()
