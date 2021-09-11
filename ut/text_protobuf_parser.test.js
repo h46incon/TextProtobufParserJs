@@ -36,6 +36,11 @@ test('one field', () => {
     expect(() => parser.parse('-')).toThrow()
     expect(() => parser.parse(':')).toThrow()
     expect(() => parser.parse(',')).toThrow()
+    expect(() => parser.parse('k: @')).toThrow()
+    expect(() => parser.parse('k: \\')).toThrow()
+    expect(() => parser.parse('k: \'')).toThrow()
+    expect(() => parser.parse('k: *')).toThrow()
+    // invalid value
 })
 
 test('multi field', () => {
@@ -98,10 +103,11 @@ test('short repeated value', () => {
     let parser = new TextProtobufParser.TextProtobufParser()
     expect(() => parser.parse('k : [')).toThrow()
     expect(() => parser.parse('k : [ ')).toThrow()
+    expect(() => parser.parse('k [ ')).toThrow()
+    expect(() => parser.parse('k : [1')).toThrow()
 
     expect(parser.parse('k : []')).toEqual({k : []})
     expect(parser.parse('k : [ ]')).toEqual({k : []})
-    expect(() => parser.parse('k : [1')).toThrow()
     expect(parser.parse('k : [1]')).toEqual({k : [1]})
     expect(parser.parse('k : [ 1 ]')).toEqual({k : [1]})
 
@@ -112,6 +118,9 @@ test('short repeated value', () => {
     expect(parser.parse('k : [ 1, 3 ]')).toEqual({k : [1, 3]})
     expect(parser.parse('k : [ 1, 3 ,]')).toEqual({k : [1, 3]})
     expect(parser.parse('k : ["1", "2", "3", "4"]')).toEqual({k : ['1', '2', '3', '4']})
+
+    expect(parser.parse('k [1,2,3]')).toEqual({k : [1,2,3]})
+
 })
 
 test('message value', () => {

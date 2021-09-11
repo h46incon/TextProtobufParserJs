@@ -59,7 +59,9 @@ class TextProtobufParser {
                 this.#skipNext()
                 val = this.#parseValue()
                 break
-            // TODO: allow following array whithout : ?
+            case '[':
+                val = this.#parseArrayValue()
+                break
             case '{':
                 val = this.#parseMsgValue()
                 break
