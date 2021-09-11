@@ -55,6 +55,7 @@ class TextProtobufParser {
                 this.#skipNext()
                 val = this.#parseValue()
                 break
+            // TODO: allow following array whithout : ?
             default:
                 throw `excepted field value, but get ${c}`
         }
@@ -84,15 +85,21 @@ class TextProtobufParser {
         if (c === 't') {
             this.#consume('true')
             return true
-        } else if (c === 'f') {
+        }
+        else if (c === 'f') {
             this.#consume('false')
             return false
-        } else if (c === '"') {
+        }
+        else if (c === '"') {
             return this.#parseStringValue()
-
-        } else if (this.#isNextNumberChar()) {
+        }
+        else if (c === '[') {
+            return this.#parseArrayValue()
+        }
+        else if (this.#isNextNumberChar()) {
             return this.#parseNumberValue()
-        } else {
+        }
+        else {
             throw `unexpected value leading character "${c}"`
         }
     }
@@ -114,7 +121,6 @@ class TextProtobufParser {
 
     #parseStringValue() {
         this.#consume('"')
-        let beg_i = this.#i
         let val = ''
 
         while(true) {
@@ -154,6 +160,42 @@ class TextProtobufParser {
         }
     }
 
+    #parseArrayValue() {
+        this.#consume('[')
+        this.#skipWhiteSpace()
+        const val = []
+
+        while (true) {
+            this.#skipWhiteSpace()
+            if (!this.#hasNext()) {
+                throw `expect elem or end of array(]), but get EOF`
+            }
+            const ch = this.#next()
+            if (ch === ']') {
+                this.#skipNext()
+                return val
+            }
+
+            const elem = this.#parseValue()
+            val.push(elem)
+
+            this.#skipWhiteSpace()
+            // must , or ] after array elem
+            // allow additional , after last elem
+            const ch2 = this.#next()
+            this.#skipNext()
+            if (ch2 === ']') {
+                return val
+            }
+            else if (ch2 === ',') {
+                // continue
+            }
+            else {
+                throw `expect , or ] of array, but get ${ch2}`
+            }
+        }
+    }
+
     #isNextWhiteSpace() {
         return this.constructor.#white_space_set.has(this.#next())
     }
@@ -162,9 +204,6 @@ class TextProtobufParser {
         return this.constructor.#number_set.has(this.#next())
     }
 
-    #isNextTokenChar() {
-        return this.constructor.#simple_token_char_set.has(this.#next())
-    }
     #parseSimpleToken() {
         return this.#parseToken(this.constructor.#simple_token_char_set)
     }
