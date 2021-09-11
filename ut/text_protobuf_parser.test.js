@@ -204,6 +204,8 @@ test('parse to JSON', () => {
     k3 {
       k1: Enum1
       k2: 9007199254740993
+      k3: "\345\275\223\345\211\215\347\212\266\346\200\201"
+      k4: "012\377\376\375"
     }
     k4 [ Enum1, Enum2, true_ ]
     `
@@ -214,6 +216,8 @@ test('parse to JSON', () => {
         k3: {
             k1: 'Enum1',     // enum
             k2: '9007199254740993', // bit number
+            k3: '当前状态', // utf8-string
+            k4: 'MDEy//79', // bytes encode as base64 string
         },
         k4: [ 'Enum1', 'Enum2', 'true_']
     })

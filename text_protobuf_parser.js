@@ -39,9 +39,18 @@ class EnumValue {
 function JsonStringifyReplacer(key, value) {
     if (value instanceof EnumValue) {
         return value.v
-    } else if (typeof(value) === 'bigint') {
+    }
+    else if (typeof(value) === 'bigint') {
         return value.toString()
-    } else {
+    }
+    if (value instanceof Uint8Array) {
+        if (typeof window === 'undefined') {
+            return Buffer.from(value).toString('base64')
+        } else {
+            return window.btoa(String.fromCharCode.apply(null, value));
+        }
+    }
+    else {
         return value
     }
 }
