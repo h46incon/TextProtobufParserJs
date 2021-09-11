@@ -145,3 +145,20 @@ test('message value', () => {
     expect(() => parser.parse('i: {j')).toThrow()
     expect(() => parser.parse('i: {j:')).toThrow()
 })
+
+test('nested type', () => {
+    let parser = new TextProtobufParser.TextProtobufParser()
+    expect(() => parser.parse('i: {j: {i: 2}')).toThrow()
+    expect(() => parser.parse('i: [{j:1 k:2}, {j:3 k:4},')).toThrow()
+
+    // message in message
+    expect(parser.parse('i: {j: {i:2 j:true}}')).toEqual({i: {j: {i: 2, j:true}}})
+    expect(parser.parse('i {j {i:2 j:true} k: 3}')).toEqual({i: {j: {i: 2, j:true}, k: 3}})
+
+    // array in message
+    expect(parser.parse('i: {j: [1,2,3]}')).toEqual({i: {j: [1,2,3]}})
+    expect(parser.parse('i: {j: [1,2,3] j: 4}')).toEqual({i: {j: [1,2,3,4]}})
+
+    // message in array
+    expect(parser.parse('i: [{j:1 k:2}, {j:3 k:4}, ] i {j:4 k:6}')).toEqual({i: [{j:1, k:2}, {j:3, k:4}, {j:4, k:6}]})
+})
