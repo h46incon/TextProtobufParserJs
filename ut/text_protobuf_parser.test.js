@@ -195,3 +195,26 @@ test('nested type', () => {
     // message in array
     expect(parser.parse('i: [{j:1 k:2}, {j:3 k:4}, ] i {j:4 k:6}')).toEqual({i: [{j:1, k:2}, {j:3, k:4}, {j:4, k:6}]})
 })
+
+test('parse to JSON', () => {
+    let parser = new TextProtobufParser.TextProtobufParser()
+    const src = String.raw`
+    k1: 1 
+    k2: 2
+    k3 {
+      k1: Enum1
+      k2: 9007199254740993
+    }
+    k4 [ Enum1, Enum2, true_ ]
+    `
+    const json_str = parser.parseToJson(src)
+    expect(JSON.parse(json_str)).toEqual({
+        k1: 1,
+        k2: 2,
+        k3: {
+            k1: 'Enum1',     // enum
+            k2: '9007199254740993', // bit number
+        },
+        k4: [ 'Enum1', 'Enum2', 'true_']
+    })
+})

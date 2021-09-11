@@ -36,6 +36,16 @@ class EnumValue {
     }
 }
 
+function JsonStringifyReplacer(key, value) {
+    if (value instanceof EnumValue) {
+        return value.v
+    } else if (typeof(value) === 'bigint') {
+        return value.toString()
+    } else {
+        return value
+    }
+}
+
 class TextProtobufParser {
     #s = ''
     #i = 0
@@ -49,7 +59,7 @@ class TextProtobufParser {
     }
 
     /**
-     * @param {string} s
+     * @param {String} s
      * @return {Object}
      */
     parse(s) {
@@ -63,6 +73,15 @@ class TextProtobufParser {
             }
             throw e
         }
+    }
+
+    /**
+     * @param {String} s
+     * @return {string}
+     */
+    parseToJson(s) {
+        const msg = this.parse(s)
+        return JSON.stringify(msg, JsonStringifyReplacer)
     }
 
     #parseMsgFields(break_when_right_brace) {
