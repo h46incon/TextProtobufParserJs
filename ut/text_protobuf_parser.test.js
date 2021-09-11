@@ -88,10 +88,15 @@ test('string value', () => {
     expect(parser.parse('k : "" ')).toEqual({k : ""})
     // simple string without escape
     expect(parser.parse(String.raw`k : " 09azAZ,./<>?;' " `)).toEqual({k : String.raw` 09azAZ,./<>?;' `})
+    // non-ascii
+    expect(parser.parse(String.raw`k : "你好，世界！Hello, World!" `)).toEqual({k : String.raw`你好，世界！Hello, World!`})
     // simple escape
-    expect(parser.parse(String.raw`k : " \\\/\" " `)).toEqual({k : String.raw` \/" `})
+    expect(parser.parse(String.raw`k : " \\\/\"\' " `)).toEqual({k : String.raw` \/"' `})
     expect(parser.parse(String.raw`k : " \b\f\n\r\t " `)).toEqual({k : " \b\f\n\r\t "})
-    // TODO: escape to bytes
+    // escape to bytes
+    expect(parser.parse(String.raw`k : "\40\040\1760" `)).toEqual({k : "  ~0"})
+    const chn_encoded = String.raw`\345\275\223\345\211\215\347\212\266\346\200\201\347\246\201\346\255\242\346\255\244\351\241\271\346\223\215\344\275\234`
+    expect(parser.parse(`k : "${chn_encoded}"`)).toEqual({k : "当前状态禁止此项操作"})
 
     // invalid string format
     expect(() => parser.parse('k : "')).toThrow()

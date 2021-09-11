@@ -31,6 +31,7 @@ class TextProtobufParser {
 
     static #white_space_set = new Set([...' \n\t\r'])
     static #number_set = new Set([...'-.0123456789'])
+    static #prue_number_set = new Set([...'0123456789'])
     static #simple_token_char_set = new Set([...'0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_'])
 
     constructor() {
@@ -167,6 +168,7 @@ class TextProtobufParser {
         else if (this.#isNextNumberChar()) {
             return this.#parseNumberValue()
         }
+        // TODO: enum value that encode as a simple token
         else {
             throw new ParseErr(`unexpected value leading character`, ch)
         }
@@ -189,43 +191,73 @@ class TextProtobufParser {
 
     #parseStringValue() {
         this.#consume('"')
-        let val = ''
+        const utf8_encoder = new TextEncoder()
 
-        while(true) {
+        let bytes = []
+        while (true) {
             if (!this.#hasNext()) {
                 throw new ParseErr(`except end of string("), but get EOF`, '\0')
             }
             const ch = this.#next()
             this.#skipNext()
-            switch (ch) {
-                case '"':
-                    // end of string
-                    return val
-                case '\\':
-                    val += this.#parseStringEscape()
-                    break
-                default:
-                    val += ch
+            if (ch === '"') {
+                // end of string
+                break
+            } else if (ch === '\\') {
+                bytes.push(this.#parseEscapedUint8())
+            } else {
+                bytes = bytes.concat(...utf8_encoder.encode(ch))
             }
         }
+
+        const uint8_array = new Uint8Array(bytes)
+        const utf8_decoder = new TextDecoder('utf-8')
+        return utf8_decoder.decode(uint8_array)
     }
 
-    #parseStringEscape() {
+    #parseEscapedUint8() {
         const ch = this.#next()
         this.#skipNext()
         switch (ch) {
-            // these escaped characters is rule form JSON, we don't know text proto rule now
-            case '"':  return '"'
-            case '\\': return '\\'
-            case '/':  return '/'
-            case 'b':  return  '\b';
-            case 'f':  return '\f'
-            case 'n':  return '\n'
-            case 'r':  return '\r'
-            case 't':  return '\t'
+            case 'n':  return '\n'.charCodeAt(0)
+            case 'r':  return '\r'.charCodeAt(0)
+            case 't':  return '\t'.charCodeAt(0)
+            case '"':  return '"'.charCodeAt(0)
+            case '\'':  return '\''.charCodeAt(0)
+            case '\\': return '\\'.charCodeAt(0)
+            case '/':  return '/'.charCodeAt(0)
+            case 'b':  return  '\b'.charCodeAt(0)
+            case 'f':  return '\f'.charCodeAt(0)
             default:
-                throw new ParseErr(`unknown escaped character`, ch)
+                if (this.constructor.#prue_number_set.has(ch)) {
+                    this.#unSkipNext()
+                    return this.#parseCodePoint()
+                }
+                else {
+                    throw new ParseErr(`unknown escaped character`, ch)
+                }
         }
+    }
+
+    #parseCodePoint() {
+        const maxCodePointSize = 3
+        const beg_i = this.#i
+        let end_i = beg_i
+        for (let i = 0; i < maxCodePointSize && this.#hasNext(); ++i) {
+            if (this.constructor.#prue_number_set.has(this.#next())) {
+                ++end_i
+                this.#skipNext()
+            }
+            else {
+                break
+            }
+        }
+        const code_point_str = this.#s.substring(beg_i, end_i)
+        const code_point = parseInt(code_point_str, 8)
+        if (code_point > 255) {
+            throw new ParseErr(`code point out of range: ${code_point_str}`, '')
+        }
+        return code_point
     }
 
     #parseArrayValue() {
@@ -297,6 +329,10 @@ class TextProtobufParser {
 
     #skipNext() {
         ++this.#i
+    }
+
+    #unSkipNext() {
+        --this.#i
     }
 
     #consume(str) {
