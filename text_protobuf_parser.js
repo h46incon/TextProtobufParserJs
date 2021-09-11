@@ -84,15 +84,6 @@ class TextProtobufParser {
         }
     }
 
-    /**
-     * @param {String} s
-     * @return {string}
-     */
-    parseToJson(s) {
-        const msg = this.parse(s)
-        return JSON.stringify(msg, JsonStringifyReplacer)
-    }
-
     #parseMsgFields(break_when_right_brace) {
         let msg = {}
         while(true) {
@@ -414,5 +405,6 @@ class TextProtobufParser {
 module.exports = {
     ParseErr,
     EnumValue,
+    JsonStringifyReplacer,
     TextProtobufParser,
 }

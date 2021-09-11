@@ -209,7 +209,8 @@ test('parse to JSON', () => {
     }
     k4 [ Enum1, Enum2, true_ ]
     `
-    const json_str = parser.parseToJson(src)
+    const msg = parser.parse(src)
+    const json_str = JSON.stringify(msg, TextProtobufParser.JsonStringifyReplacer)
     expect(JSON.parse(json_str)).toEqual({
         k1: 1,
         k2: 2,

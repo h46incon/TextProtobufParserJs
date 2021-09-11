@@ -21,7 +21,8 @@
             console.log('src: ' + src)
             const parser = new TextProtobufParser()
             try {
-                out_container.value = parser.parseToJson(src)
+                const msg = parser.parse(src)
+                out_container.value = JSON.stringify(msg, JsonStringifyReplacer, 2)
             } catch (e) {
                 out_container.value = e.message
                 throw e
