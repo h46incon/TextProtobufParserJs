@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Text protobuf parser</title>
+    <style>
+        .text-box {
+            height: 100%;
+            padding: 10px 10px 10px 30px;
+            border-radius: 0px;
+            resize: none;
+            outline: none;
+            border: 2px solid rgb(238, 238, 238);
+        }
+    </style>
+    <script src="text_protobuf_parser.js"></script>
+    <script>
+        function parseTextProto() {
+            const src = document.querySelector('#text_proto_src').value
+            const out_container = document.querySelector('#parse_result')
+            console.log('src: ' + src)
+            const parser = new TextProtobufParser()
+            try {
+                out_container.value = parser.parseToJson(src)
+            } catch (e) {
+                out_container.value = e.message
+                throw e
+            }
+        }
+    </script>
+</head>
+<body>
+<div id="main" style="width: 100%; height: 100%; position: absolute">
+    <button onclick="parseTextProto()" style="display: block">
+        解析
+    </button>
+    <textarea id="text_proto_src" class="text-box" style="width: 40%; display: inline-block" placeholder="在此输入字符串..." ></textarea>
+    <textarea id="parse_result" class="text-box" style="width: 40%; display: inline-block"></textarea>
+</div>
+</body>
+</html>
