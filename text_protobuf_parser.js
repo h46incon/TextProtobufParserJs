@@ -16,14 +16,18 @@ class TextProtobufParser {
     parse(s) {
         this.#s = s
         this.#i = 0
-        return this.#parseMsgFields()
+        return this.#parseMsgFields(/*break_when_right_brace=*/false)
     }
 
-    #parseMsgFields() {
+    #parseMsgFields(break_when_right_brace) {
         let msg = {}
         while(true) {
             this.#skipWhiteSpace()
             if (!this.#hasNext()) {
+                break
+            }
+
+            if (break_when_right_brace && this.#next() === '}') {
                 break
             }
             const field =  this.#parseField()
@@ -56,6 +60,9 @@ class TextProtobufParser {
                 val = this.#parseValue()
                 break
             // TODO: allow following array whithout : ?
+            case '{':
+                val = this.#parseMsgValue()
+                break
             default:
                 throw `excepted field value, but get ${c}`
         }
@@ -95,6 +102,9 @@ class TextProtobufParser {
         }
         else if (c === '[') {
             return this.#parseArrayValue()
+        }
+        else if (c === '{') {
+            return this.#parseMsgValue()
         }
         else if (this.#isNextNumberChar()) {
             return this.#parseNumberValue()
@@ -194,6 +204,13 @@ class TextProtobufParser {
                 throw `expect , or ] of array, but get ${ch2}`
             }
         }
+    }
+
+    #parseMsgValue() {
+        this.#consume('{')
+        const val = this.#parseMsgFields(/*break_when_right_brace=*/true)
+        this.#consume('}')
+        return val
     }
 
     #isNextWhiteSpace() {

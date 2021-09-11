@@ -38,6 +38,15 @@ test('one field', () => {
     expect(() => parser.parse(',')).toThrow()
 })
 
+test('multi field', () => {
+    let parser = new TextProtobufParser.TextProtobufParser()
+    expect(parser.parse('i:true j :false\nk : true\tl :false')).toEqual({i: true, j: false, k: true, l:false})
+    // err format
+    expect(() => parser.parse('i:true :,')).toThrow()
+    expect(() => parser.parse('i:true j')).toThrow()
+    expect(() => parser.parse('i:true j:')).toThrow()
+})
+
 test('true/false value', () => {
     let parser = new TextProtobufParser.TextProtobufParser()
     expect(parser.parse('k : true')).toEqual({k : true})
@@ -103,4 +112,18 @@ test('short repeated value', () => {
     expect(parser.parse('k : [ 1, 3 ]')).toEqual({k : [1, 3]})
     expect(parser.parse('k : [ 1, 3 ,]')).toEqual({k : [1, 3]})
     expect(parser.parse('k : ["1", "2", "3", "4"]')).toEqual({k : ['1', '2', '3', '4']})
+})
+
+test('message value', () => {
+    let parser = new TextProtobufParser.TextProtobufParser()
+    expect(parser.parse('i: {j: 1}')).toEqual({i: {j: 1}})
+    expect(parser.parse('i{j: 1}')).toEqual({i: {j: 1}})
+    expect(parser.parse('i {j: 1}')).toEqual({i: {j: 1}})
+    expect(parser.parse('i\n {j: 1}')).toEqual({i: {j: 1}})
+    expect(parser.parse('i\t {j: 1}')).toEqual({i: {j: 1}})
+    expect(parser.parse('i {i: 1 j: "2" k: true}')).toEqual({i: {i: 1, j: "2", k: true}})
+    // err format
+    expect(() => parser.parse('i: {')).toThrow()
+    expect(() => parser.parse('i: {j')).toThrow()
+    expect(() => parser.parse('i: {j:')).toThrow()
 })
