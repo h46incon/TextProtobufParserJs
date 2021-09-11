@@ -1,3 +1,30 @@
+class ParseErr extends Error {
+    get err_i() {
+        return this.#err_i;
+    }
+    set err_i(value) {
+        this.#err_i = value
+        this.message = `${this.message}, error index: ${this.#err_i}`
+    }
+
+    constructor(parse_err_msg, cur_ch) {
+        super();
+        this.name = 'ParserError'
+
+        /** @type {String} */
+        this.parse_err_msg = parse_err_msg
+        /** @type {String} */
+        this.cur_ch = cur_ch
+        /** @type {Number} */
+        this.#err_i = null
+
+        // override output message
+        this.message = `${this.parse_err_msg}, error character: [${cur_ch}]`
+    }
+
+    #err_i
+}
+
 class TextProtobufParser {
     #s = ''
     #i = 0
@@ -16,7 +43,14 @@ class TextProtobufParser {
     parse(s) {
         this.#s = s
         this.#i = 0
-        return this.#parseMsgFields(/*break_when_right_brace=*/false)
+        try {
+            return this.#parseMsgFields(/*break_when_right_brace=*/false)
+        } catch (e) {
+            if (e instanceof ParseErr) {
+                e.err_i = this.#i
+            }
+            throw e
+        }
     }
 
     #parseMsgFields(break_when_right_brace) {
@@ -72,10 +106,10 @@ class TextProtobufParser {
     #parseField() {
         const field_name = this.#parseSimpleToken()
         this.#skipWhiteSpace()
-        const c = this.#next()
+        const ch = this.#next()
 
         let val = null
-        switch (c) {
+        switch (ch) {
             case ':':
                 // simple filed
                 this.#skipNext()
@@ -88,7 +122,7 @@ class TextProtobufParser {
                 val = this.#parseMsgValue()
                 break
             default:
-                throw `excepted field value, but get ${c}`
+                throw new ParseErr(`excepted field value`, ch)
         }
 
         return {
@@ -112,29 +146,29 @@ class TextProtobufParser {
     #parseValue() {
         this.#skipWhiteSpace()
 
-        const c = this.#next()
-        if (c === 't') {
+        const ch = this.#next()
+        if (ch === 't') {
             this.#consume('true')
             return true
         }
-        else if (c === 'f') {
+        else if (ch === 'f') {
             this.#consume('false')
             return false
         }
-        else if (c === '"') {
+        else if (ch === '"') {
             return this.#parseStringValue()
         }
-        else if (c === '[') {
+        else if (ch === '[') {
             return this.#parseArrayValue()
         }
-        else if (c === '{') {
+        else if (ch === '{') {
             return this.#parseMsgValue()
         }
         else if (this.#isNextNumberChar()) {
             return this.#parseNumberValue()
         }
         else {
-            throw `unexpected value leading character "${c}"`
+            throw new ParseErr(`unexpected value leading character`, ch)
         }
     }
 
@@ -144,7 +178,7 @@ class TextProtobufParser {
         const number_str = this.#parseToken(this.constructor.#number_set)
         const n = Number(number_str)
         if (Number.isNaN(n))  {
-            throw `parse number failed: ${number_str}`
+            throw new ParseErr(`parse number failed: ${number_str}`, '')
         }
         // if maybe overflow, return as string
         if (n > Number.MAX_SAFE_INTEGER || n < Number.MIN_SAFE_INTEGER) {
@@ -159,7 +193,7 @@ class TextProtobufParser {
 
         while(true) {
             if (!this.#hasNext()) {
-                throw `except end of string("), but get EOF`
+                throw new ParseErr(`except end of string("), but get EOF`, '\0')
             }
             const ch = this.#next()
             this.#skipNext()
@@ -190,7 +224,7 @@ class TextProtobufParser {
             case 'r':  return '\r'
             case 't':  return '\t'
             default:
-                throw `unknown escaped character \\${ch}`
+                throw new ParseErr(`unknown escaped character`, ch)
         }
     }
 
@@ -202,7 +236,7 @@ class TextProtobufParser {
         while (true) {
             this.#skipWhiteSpace()
             if (!this.#hasNext()) {
-                throw `expect elem or end of array(]), but get EOF`
+                throw new ParseErr(`expect elem or end of array(]), but get EOF`, '\0')
             }
             const ch = this.#next()
             if (ch === ']') {
@@ -225,7 +259,7 @@ class TextProtobufParser {
                 // continue
             }
             else {
-                throw `expect , or ] of array, but get ${ch2}`
+                throw new ParseErr(`expect , or ] of array`, ch2)
             }
         }
     }
@@ -256,7 +290,7 @@ class TextProtobufParser {
 
     #next() {
         if (!this.#hasNext()) {
-            throw `expect some character, but get EOF`
+            throw new ParseErr(`expect some character, but get EOF`, '\0')
         }
         return this.#s[this.#i]
     }
@@ -268,11 +302,11 @@ class TextProtobufParser {
     #consume(str) {
         for (const c of str) {
             if (!this.#hasNext()) {
-                throw `expect '${c}' of "${str}", but get EOF`
+                throw new ParseErr(`expect '${c}' of "${str}", but get EOF`, '\0')
             }
             const next = this.#next()
             if (next !== c) {
-                throw `expect '${c}' of "${str}", but get ${next}`
+                throw new ParseErr(`expect '${c}' of "${str}"`, next)
             }
             this.#skipNext()
         }
