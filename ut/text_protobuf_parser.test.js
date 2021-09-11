@@ -34,8 +34,31 @@ test('one field', () => {
     )
 })
 
-test('simple field value', () => {
+test('true/false value', () => {
     let parser = new TextProtobufParser.TextProtobufParser()
     expect(parser.parse('k : true')).toEqual({k : true})
     expect(parser.parse('k : false')).toEqual({k : false})
+})
+
+test('number value', () => {
+    let parser = new TextProtobufParser.TextProtobufParser()
+    expect(parser.parse('k : 0')).toEqual({k : 0})
+    expect(parser.parse('k : -1')).toEqual({k : -1})
+    expect(parser.parse('k : 123')).toEqual({k : 123})
+    expect(parser.parse('k : -1234567')).toEqual({k : -1234567})
+    expect(parser.parse('k : 1.01')).toEqual({k : 1.01})
+    expect(parser.parse('k : -1.01')).toEqual({k : -1.01})
+
+    expect(parser.parse('k : 9007199254740991')).toEqual({k : 9007199254740991})
+    expect(parser.parse('k : 9007199254740993')).toEqual({k : '9007199254740993'})
+    expect(parser.parse('k : -9007199254740991')).toEqual({k : -9007199254740991})
+    expect(parser.parse('k : -9007199254740993')).toEqual({k : '-9007199254740993'})
+})
+
+test('string value', () => {
+    let parser = new TextProtobufParser.TextProtobufParser()
+    expect(parser.parse('k : ""')).toEqual({k : ""})
+    expect(parser.parse('k : "" ')).toEqual({k : ""})
+
+    expect(parser.parse(String.raw`k : " 09azAZ,./<>?;' " `)).toEqual({k : String.raw` 09azAZ,./<>?;' `})
 })
