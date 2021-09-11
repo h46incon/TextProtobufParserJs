@@ -57,8 +57,12 @@ test('number value', () => {
 
 test('string value', () => {
     let parser = new TextProtobufParser.TextProtobufParser()
+    // empty
     expect(parser.parse('k : ""')).toEqual({k : ""})
     expect(parser.parse('k : "" ')).toEqual({k : ""})
-
+    // simple string without escape
     expect(parser.parse(String.raw`k : " 09azAZ,./<>?;' " `)).toEqual({k : String.raw` 09azAZ,./<>?;' `})
+    // simple escape
+    expect(parser.parse(String.raw`k : " \\\/\" " `)).toEqual({k : String.raw` \/" `})
+    expect(parser.parse(String.raw`k : " \b\f\n\r\t " `)).toEqual({k : " \b\f\n\r\t "})
 })

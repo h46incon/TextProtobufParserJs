@@ -118,6 +118,9 @@ class TextProtobufParser {
         let val = ''
 
         while(true) {
+            if (!this.#hasNext()) {
+                throw `except end of string("), but get EOF`
+            }
             const ch = this.#next()
             this.#skipNext()
             switch (ch) {
@@ -125,10 +128,29 @@ class TextProtobufParser {
                     // end of string
                     return val
                 case '\\':
-                    throw `not support string escape now`;
+                    val += this.#parseStringEscape()
+                    break
                 default:
                     val += ch
             }
+        }
+    }
+
+    #parseStringEscape() {
+        const ch = this.#next()
+        this.#skipNext()
+        switch (ch) {
+            // these escaped characters is rule form JSON, we don't know text proto rule now
+            case '"':  return '"'
+            case '\\': return '\\'
+            case '/':  return '/'
+            case 'b':  return  '\b';
+            case 'f':  return '\f'
+            case 'n':  return '\n'
+            case 'r':  return '\r'
+            case 't':  return '\t'
+            default:
+                throw `unknown escaped character \\${ch}`
         }
     }
 
