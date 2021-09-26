@@ -84,6 +84,8 @@ class TextProtobufParser {
         }
     }
 
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////     value parser
     #parseMsgFields(break_when_right_brace) {
         let msg = {}
         while(true) {
@@ -128,12 +130,6 @@ class TextProtobufParser {
         return msg
     }
 
-    #skipWhiteSpace() {
-        while(this.#hasNext() && this.#isNextWhiteSpace()) {
-            this.#skipNext()
-        }
-    }
-
     #parseField() {
         const field_name = this.#parseSimpleToken()
         this.#skipWhiteSpace()
@@ -160,18 +156,6 @@ class TextProtobufParser {
             name: field_name,
             value: val,
         }
-    }
-
-    /** parse a token string that all characters in char_set */
-    #parseToken(char_set) {
-        const beg_i = this.#i
-        let end_i = this.#i
-        // allow number leading token for the time being
-        while(this.#hasNext() && char_set.has(this.#next())) {
-            this.#skipNext()
-            ++end_i
-        }
-        return this.#s.substring(beg_i, end_i)
     }
 
     #parseValue() {
@@ -211,6 +195,65 @@ class TextProtobufParser {
         else {
             throw new ParseErr(`unexpected value leading character`, ch)
         }
+    }
+
+    #parseArrayValue() {
+        this.#consume('[')
+        this.#skipWhiteSpace()
+        const val = []
+
+        while (true) {
+            this.#skipWhiteSpace()
+            if (!this.#hasNext()) {
+                throw new ParseErr(`expect elem or end of array(]), but get EOF`, '\0')
+            }
+            const ch = this.#next()
+            if (ch === ']') {
+                this.#skipNext()
+                return val
+            }
+
+            const elem = this.#parseValue()
+            val.push(elem)
+
+            this.#skipWhiteSpace()
+            // must , or ] after array elem
+            // allow additional , after last elem
+            const ch2 = this.#next()
+            this.#skipNext()
+            if (ch2 === ']') {
+                return val
+            }
+            else if (ch2 === ',') {
+                // continue
+            }
+            else {
+                throw new ParseErr(`expect , or ] of array`, ch2)
+            }
+        }
+    }
+
+    #parseMsgValue() {
+        this.#consume('{')
+        const val = this.#parseMsgFields(/*break_when_right_brace=*/true)
+        this.#consume('}')
+        return val
+    }
+
+    /** parse a token string that all characters in char_set */
+    #parseToken(char_set) {
+        const beg_i = this.#i
+        let end_i = this.#i
+        // allow number leading token for the time being
+        while(this.#hasNext() && char_set.has(this.#next())) {
+            this.#skipNext()
+            ++end_i
+        }
+        return this.#s.substring(beg_i, end_i)
+    }
+
+    #parseSimpleToken() {
+        return this.#parseToken(this.constructor.#simple_token_char_set)
     }
 
     #parseNumberValue() {
@@ -308,48 +351,12 @@ class TextProtobufParser {
         }
         return code_point
     }
-
-    #parseArrayValue() {
-        this.#consume('[')
-        this.#skipWhiteSpace()
-        const val = []
-
-        while (true) {
-            this.#skipWhiteSpace()
-            if (!this.#hasNext()) {
-                throw new ParseErr(`expect elem or end of array(]), but get EOF`, '\0')
-            }
-            const ch = this.#next()
-            if (ch === ']') {
-                this.#skipNext()
-                return val
-            }
-
-            const elem = this.#parseValue()
-            val.push(elem)
-
-            this.#skipWhiteSpace()
-            // must , or ] after array elem
-            // allow additional , after last elem
-            const ch2 = this.#next()
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////     util
+    #skipWhiteSpace() {
+        while(this.#hasNext() && this.#isNextWhiteSpace()) {
             this.#skipNext()
-            if (ch2 === ']') {
-                return val
-            }
-            else if (ch2 === ',') {
-                // continue
-            }
-            else {
-                throw new ParseErr(`expect , or ] of array`, ch2)
-            }
         }
-    }
-
-    #parseMsgValue() {
-        this.#consume('{')
-        const val = this.#parseMsgFields(/*break_when_right_brace=*/true)
-        this.#consume('}')
-        return val
     }
 
     #isNextWhiteSpace() {
@@ -363,11 +370,6 @@ class TextProtobufParser {
     #isNextSimpleTokenChar() {
         return this.constructor.#simple_token_char_set.has(this.#next())
     }
-
-    #parseSimpleToken() {
-        return this.#parseToken(this.constructor.#simple_token_char_set)
-    }
-
 
     #hasNext() {
         return this.#i < this.#s.length
