@@ -165,10 +165,15 @@ test('message value', () => {
     expect(parser.parse('i\n {j: 1}')).toEqual({i: {j: 1}})
     expect(parser.parse('i\t {j: 1}')).toEqual({i: {j: 1}})
     expect(parser.parse('i {i: 1 j: "2" k: true}')).toEqual({i: {i: 1, j: "2", k: true}})
+
+    // empty message
+    expect(parser.parse('i {}')).toEqual({i: {}})
+
     // err format
     expect(() => parser.parse('i: {')).toThrow()
     expect(() => parser.parse('i: {j')).toThrow()
     expect(() => parser.parse('i: {j:')).toThrow()
+    expect(() => parser.parse('i: {j:2]')).toThrow()
 })
 
 test('nested type', () => {
@@ -227,7 +232,53 @@ test('parse to JSON', () => {
 test('parseInto', () => {
     let parser = new TextProtobufParser.TextProtobufParser()
     const src = ' k1:1.0 k2:"2" k3:1 k3:[2,3] k4:{k1:true k2:Enum1} '
+    // merge from empty object
+    {
+        let msg = {}
+        parser.parseInto(src, msg)
+        expect(msg).toEqual({
+            k1: 1.0,
+            k2: "2",
+            k3: [1, 2, 3],
+            k4: {k1: true, k2: new TextProtobufParser.EnumValue('Enum1')}
+        })
+    }
+
+    // merge from non-empty object
+    {
+        let msg2 = {k1: 2.0}
+        parser.parseInto(src, msg2)
+        expect(msg2).toEqual({
+            k1: [2.0, 1.0],
+            k2: "2",
+            k3: [1, 2, 3],
+            k4: {k1: true, k2: new TextProtobufParser.EnumValue('Enum1')}
+        })
+    }
+})
+
+function checkHalfParseInto(src, target) {
+    let parser = new TextProtobufParser.TextProtobufParser()
     let msg = {}
-    parser.parseInto(src, msg)
-    expect(msg).toEqual({k1:1.0, k2:"2", k3:[1,2,3], k4:{k1:true, k2: new TextProtobufParser.EnumValue('Enum1')}})
+    expect(() => parser.parseInto(src, msg)).toThrow()
+    // but can still return some part of parse result
+    expect(msg).toEqual(target)
+}
+
+test('parseInto half', () => {
+    //  missing } of message
+    checkHalfParseInto(' k1:1.0 k2:"2" k3:1 k3:[2,3] k4:{k1:true k2:Enum1 ',   // missing last }
+        {k1: 1.0, k2: "2", k3: [1, 2, 3], k4: {k1: true, k2: new TextProtobufParser.EnumValue('Enum1')}})
+    // missing value of field
+    checkHalfParseInto(' k1:1.0 k2:"2" k3:1 k3:[2,3] k4:{k1:true k2:',
+        {k1: 1.0, k2: "2", k3: [1, 2, 3], k4: {k1: true, k2: null}})
+    // missing key
+    checkHalfParseInto(' k1:1.0 k2:"2" k3:1 k3:[2,3] k4:{',
+        {k1: 1.0, k2: "2", k3: [1, 2, 3], k4: {}})
+    // array end err
+    checkHalfParseInto(' k1:1.0 k2:"2" k3:1 k3:[2,3}',
+        {k1: 1.0, k2: "2", k3: [1, 2, 3]})
+    // parse string failed
+    checkHalfParseInto(' k1:1.0 k2:"2 ',
+        {k1: 1.0, k2: null})
 })
