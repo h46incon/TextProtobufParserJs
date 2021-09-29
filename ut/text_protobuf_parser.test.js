@@ -223,3 +223,11 @@ test('parse to JSON', () => {
         k4: [ 'Enum1', 'Enum2', 'true_']
     })
 })
+
+test('parseInto', () => {
+    let parser = new TextProtobufParser.TextProtobufParser()
+    const src = ' k1:1.0 k2:"2" k3:1 k3:[2,3] k4:{k1:true k2:Enum1} '
+    let msg = {}
+    parser.parseInto(src, msg)
+    expect(msg).toEqual({k1:1.0, k2:"2", k3:[1,2,3], k4:{k1:true, k2: new TextProtobufParser.EnumValue('Enum1')}})
+})

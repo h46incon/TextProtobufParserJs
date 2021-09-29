@@ -55,6 +55,12 @@ function JsonStringifyReplacer(key, value) {
     }
 }
 
+class ValWrapper {
+    constructor() {
+        this.v = null
+    }
+}
+
 class TextProtobufParser {
     #s = ''
     #i = 0
@@ -72,10 +78,20 @@ class TextProtobufParser {
      * @return {Object}
      */
     parse(s) {
+        let obj = {}
+        this.parseInto(s, obj)
+        return obj
+    }
+
+    /**
+     * @param {String} s
+     * @param {Object} obj: output
+     */
+    parseInto(s, obj) {
         this.#s = s
         this.#i = 0
         try {
-            return this.#parseMsgFields(/*break_when_right_brace=*/false)
+            this.#parseMsgFieldsInto(obj, /*break_when_right_brace=*/false)
         } catch (e) {
             if (e instanceof ParseErr) {
                 e.err_i = this.#i
@@ -86,8 +102,12 @@ class TextProtobufParser {
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     ////     value parser
-    #parseMsgFields(break_when_right_brace) {
-        let msg = {}
+    /**
+     * @param {Object} out
+     * @param {boolean} break_when_right_brace
+     */
+    #parseMsgFieldsInto(out, break_when_right_brace) {
+        let msg = out
         while(true) {
             this.#skipWhiteSpace()
             if (!this.#hasNext()) {
@@ -97,82 +117,103 @@ class TextProtobufParser {
             if (break_when_right_brace && this.#next() === '}') {
                 break
             }
-            const field =  this.#parseField()
-            if (field.name in msg) {
-                // field already in msg, is a repeated field
-                let new_val = msg[field.name]
-                if (Array.isArray(new_val)) {
-                    // protobuf could define repeated of repeated
-                    // thus if a value is array, is must be a repeated value itself, not a elem of repeated value
-                }
-                else {
-                    new_val = [new_val]
-                }
+            const field =  {}
+            try {
+                this.#parseFieldInto(field)
+            } catch (e) {
+                throw e
+            } finally {
+                // add filed to msg
+                if (field.name in msg) {
+                    // field already in msg, is a repeated field
+                    let new_val = msg[field.name]
+                    if (Array.isArray(new_val)) {
+                        // protobuf could define repeated of repeated
+                        // thus if a value is array, is must be a repeated value itself, not a elem of repeated value
+                    }
+                    else {
+                        new_val = [new_val]
+                    }
 
-                if (Array.isArray(field.value)) {
-                    new_val = new_val.concat(field.value)
+                    if (Array.isArray(field.value)) {
+                        new_val = new_val.concat(field.value)
+                    }
+                    else {
+                        new_val.push(field.value)
+                    }
+                    msg[field.name] = new_val
                 }
                 else {
-                    new_val.push(field.value)
+                    // single field
+                    Object.defineProperty(msg, field.name, {
+                        configurable: true,
+                        enumerable: true,
+                        writable: true,
+                        value: field.value,
+                    })
                 }
-                msg[field.name] = new_val
-            }
-            else {
-                // single field
-                Object.defineProperty(msg, field.name, {
-                    configurable: true,
-                    enumerable: true,
-                    writable: true,
-                    value: field.value,
-                })
             }
         }
-        return msg
     }
 
-    #parseField() {
-        const field_name = this.#parseSimpleToken()
+    /**
+     * @param {Object} out: return {{name: string, value: {}}}
+     */
+    #parseFieldInto(out) {
+        out.name = ''
+        out.value = null
+
+        out.name  = this.#parseSimpleToken()
         this.#skipWhiteSpace()
         const ch = this.#next()
 
-        let val = null
         switch (ch) {
             case ':':
                 // simple filed
                 this.#skipNext()
-                val = this.#parseValue()
+                let val = new ValWrapper()
+                try {
+                    this.#parseValueInto(val)
+                } catch (e) {
+                    throw e
+                } finally {
+                    out.value = val.v
+                }
                 break
             case '[':
-                val = this.#parseArrayValue()
+                out.value = []
+                this.#parseArrayValueInto(out.value)
                 break
             case '{':
-                val = this.#parseMsgValue()
+                out.value = {}
+                this.#parseMsgValueInto(out.value)
                 break
             default:
                 throw new ParseErr(`excepted field value`, ch)
         }
-
-        return {
-            name: field_name,
-            value: val,
-        }
     }
 
-    #parseValue() {
+    /**
+     * @param {ValWrapper} out
+     */
+    #parseValueInto(out) {
+        out.v = null
         this.#skipWhiteSpace()
 
         const ch = this.#next()
         if (ch === '"') {
-            return this.#parseStringValue()
+            out.v = this.#parseStringValue()
         }
         else if (ch === '[') {
-            return this.#parseArrayValue()
+            out.v = []
+            this.#parseArrayValueInto(out.v)
         }
         else if (ch === '{') {
-            return this.#parseMsgValue()
+            out.v = {}
+            this.#parseMsgValueInto(out.v)
         }
         else if (this.#isNextNumberChar()) {
-            return this.#parseNumberValue()
+            out.v = this.#parseNumberValue()
         }
         else if (this.#isNextSimpleTokenChar()) {
             // NOTE: must judge isNextNumberChar(), true/false token before isNextSimpleTokenChar()
@@ -181,15 +222,15 @@ class TextProtobufParser {
             // it's not easy judge a token type without protobuf Message definition,
             // i.e maybe a enum named true/false/nan, but we must assume the judging priority
             if (token === 'true') {
-                return true
+                out.v = true
             } else if (token === 'false') {
-                return false
+                out.v = false
             } else if (token === 'nan') {
                 // NOTE: google text_format parser will recognize inf/-inf/infinity/-infinity/-nan also
                 // but only generate nan is current implementation
-                return Number.NaN
+                out.v = Number.NaN
             } else {
-                return new EnumValue(token)
+                out.v = new EnumValue(token)
             }
         }
         else {
@@ -197,10 +238,12 @@ class TextProtobufParser {
         }
     }
 
-    #parseArrayValue() {
+    /**
+     * @param {Array} out
+     */
+    #parseArrayValueInto(out) {
         this.#consume('[')
         this.#skipWhiteSpace()
-        const val = []
 
         while (true) {
             this.#skipWhiteSpace()
@@ -210,11 +253,17 @@ class TextProtobufParser {
             const ch = this.#next()
             if (ch === ']') {
                 this.#skipNext()
-                return val
+                return
             }
 
-            const elem = this.#parseValue()
-            val.push(elem)
+            let elem = new ValWrapper()
+            try {
+                this.#parseValueInto(elem)
+            } catch (e) {
+                throw e
+            } finally {
+                out.push(elem.v)
+            }
 
             this.#skipWhiteSpace()
             // must , or ] after array elem
@@ -222,7 +271,7 @@ class TextProtobufParser {
             const ch2 = this.#next()
             this.#skipNext()
             if (ch2 === ']') {
-                return val
+                return
             }
             else if (ch2 === ',') {
                 // continue
@@ -233,11 +282,13 @@ class TextProtobufParser {
         }
     }
 
-    #parseMsgValue() {
+    /**
+     * @param {Object} out
+     */
+    #parseMsgValueInto(out) {
         this.#consume('{')
-        const val = this.#parseMsgFields(/*break_when_right_brace=*/true)
+        this.#parseMsgFieldsInto(out, /*break_when_right_brace=*/true)
         this.#consume('}')
-        return val
     }
 
     /** parse a token string that all characters in char_set */
