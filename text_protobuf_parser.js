@@ -1,13 +1,5 @@
 class ParseErr extends Error {
-    get err_i() {
-        return this.#err_i;
-    }
-    set err_i(value) {
-        this.#err_i = value
-        this.message = `${this.message}, error index: ${this.#err_i}`
-    }
-
-    // TODO: override toString()
+    #err_i
 
     constructor(parse_err_msg, cur_ch) {
         super();
@@ -24,7 +16,16 @@ class ParseErr extends Error {
         this.message = `${this.parse_err_msg}, error character: [${cur_ch}]`
     }
 
-    #err_i
+    // TODO: override toString()
+
+    get err_i() {
+        return this.#err_i;
+    }
+
+    set err_i(value) {
+        this.#err_i = value
+        this.message = `${this.message}, error index: ${this.#err_i}`
+    }
 }
 
 class EnumValue {
@@ -39,18 +40,15 @@ class EnumValue {
 function JsonStringifyReplacer(key, value) {
     if (value instanceof EnumValue) {
         return value.v
-    }
-    else if (typeof(value) === 'bigint') {
+    } else if (typeof (value) === 'bigint') {
         return value.toString()
-    }
-    if (value instanceof Uint8Array) {
+    } else if (value instanceof Uint8Array) {
         if (typeof window === 'undefined') {
             return Buffer.from(value).toString('base64')
         } else {
             return window.btoa(String.fromCharCode.apply(null, value));
         }
-    }
-    else {
+    } else {
         return value
     }
 }
@@ -62,13 +60,12 @@ class ValWrapper {
 }
 
 class TextProtobufParser {
-    #s = ''
-    #i = 0
-
     static #white_space_set = new Set([...' \n\t\r'])
     static #number_set = new Set([...'-.0123456789'])
     static #prue_number_set = new Set([...'0123456789'])
     static #simple_token_char_set = new Set([...'0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_'])
+    #s = ''
+    #i = 0
 
     constructor() {
     }
@@ -108,7 +105,7 @@ class TextProtobufParser {
      */
     #parseMsgFieldsInto(out, break_when_right_brace) {
         let msg = out
-        while(true) {
+        while (true) {
             this.#skipWhiteSpace()
             if (!this.#hasNext()) {
                 break
@@ -117,7 +114,7 @@ class TextProtobufParser {
             if (break_when_right_brace && this.#next() === '}') {
                 break
             }
-            const field =  {}
+            const field = {}
             try {
                 this.#parseFieldInto(field)
             } catch (e) {
@@ -130,20 +127,17 @@ class TextProtobufParser {
                     if (Array.isArray(new_val)) {
                         // protobuf could define repeated of repeated
                         // thus if a value is array, is must be a repeated value itself, not a elem of repeated value
-                    }
-                    else {
+                    } else {
                         new_val = [new_val]
                     }
 
                     if (Array.isArray(field.value)) {
                         new_val = new_val.concat(field.value)
-                    }
-                    else {
+                    } else {
                         new_val.push(field.value)
                     }
                     msg[field.name] = new_val
-                }
-                else {
+                } else {
                     // single field
                     Object.defineProperty(msg, field.name, {
                         configurable: true,
@@ -163,7 +157,7 @@ class TextProtobufParser {
         out.name = ''
         out.value = null
 
-        out.name  = this.#parseSimpleToken()
+        out.name = this.#parseSimpleToken()
         this.#skipWhiteSpace()
         const ch = this.#next()
 
@@ -203,19 +197,15 @@ class TextProtobufParser {
         const ch = this.#next()
         if (ch === '"') {
             out.v = this.#parseStringValue()
-        }
-        else if (ch === '[') {
+        } else if (ch === '[') {
             out.v = []
             this.#parseArrayValueInto(out.v)
-        }
-        else if (ch === '{') {
+        } else if (ch === '{') {
             out.v = {}
             this.#parseMsgValueInto(out.v)
-        }
-        else if (this.#isNextNumberChar()) {
+        } else if (this.#isNextNumberChar()) {
             out.v = this.#parseNumberValue()
-        }
-        else if (this.#isNextSimpleTokenChar()) {
+        } else if (this.#isNextSimpleTokenChar()) {
             // NOTE: must judge isNextNumberChar(), true/false token before isNextSimpleTokenChar()
             const token = this.#parseSimpleToken()
             // enum value that encode as a simple token
@@ -232,8 +222,7 @@ class TextProtobufParser {
             } else {
                 out.v = new EnumValue(token)
             }
-        }
-        else {
+        } else {
             throw new ParseErr(`unexpected value leading character`, ch)
         }
     }
@@ -272,11 +261,9 @@ class TextProtobufParser {
             this.#skipNext()
             if (ch2 === ']') {
                 return
-            }
-            else if (ch2 === ',') {
+            } else if (ch2 === ',') {
                 // continue
-            }
-            else {
+            } else {
                 throw new ParseErr(`expect , or ] of array`, ch2)
             }
         }
@@ -296,7 +283,7 @@ class TextProtobufParser {
         const beg_i = this.#i
         let end_i = this.#i
         // allow number leading token for the time being
-        while(this.#hasNext() && char_set.has(this.#next())) {
+        while (this.#hasNext() && char_set.has(this.#next())) {
             this.#skipNext()
             ++end_i
         }
@@ -312,7 +299,7 @@ class TextProtobufParser {
         // get a token first, and then try parse
         const number_str = this.#parseToken(this.constructor.#number_set)
         const n = Number(number_str)
-        if (Number.isNaN(n))  {
+        if (Number.isNaN(n)) {
             throw new ParseErr(`parse number failed: ${number_str}`, '')
         }
         if (!Number.isInteger(n)) {
@@ -352,7 +339,7 @@ class TextProtobufParser {
         const utf8_decoder = new TextDecoder('utf-8', {fatal: true})
         try {
             return utf8_decoder.decode(uint8_array)
-        } catch(e) {
+        } catch (e) {
             // could not decode into utf8 string, maybe a protobuf bytes value, return bytes directly
             return uint8_array
         }
@@ -362,21 +349,29 @@ class TextProtobufParser {
         const ch = this.#next()
         this.#skipNext()
         switch (ch) {
-            case 'n':  return '\n'.charCodeAt(0)
-            case 'r':  return '\r'.charCodeAt(0)
-            case 't':  return '\t'.charCodeAt(0)
-            case '"':  return '"'.charCodeAt(0)
-            case '\'':  return '\''.charCodeAt(0)
-            case '\\': return '\\'.charCodeAt(0)
-            case '/':  return '/'.charCodeAt(0)
-            case 'b':  return  '\b'.charCodeAt(0)
-            case 'f':  return '\f'.charCodeAt(0)
+            case 'n':
+                return '\n'.charCodeAt(0)
+            case 'r':
+                return '\r'.charCodeAt(0)
+            case 't':
+                return '\t'.charCodeAt(0)
+            case '"':
+                return '"'.charCodeAt(0)
+            case '\'':
+                return '\''.charCodeAt(0)
+            case '\\':
+                return '\\'.charCodeAt(0)
+            case '/':
+                return '/'.charCodeAt(0)
+            case 'b':
+                return '\b'.charCodeAt(0)
+            case 'f':
+                return '\f'.charCodeAt(0)
             default:
                 if (this.constructor.#prue_number_set.has(ch)) {
                     this.#unSkipNext()
                     return this.#parseCodePoint()
-                }
-                else {
+                } else {
                     throw new ParseErr(`unknown escaped character`, ch)
                 }
         }
@@ -390,8 +385,7 @@ class TextProtobufParser {
             if (this.constructor.#prue_number_set.has(this.#next())) {
                 ++end_i
                 this.#skipNext()
-            }
-            else {
+            } else {
                 break
             }
         }
@@ -402,10 +396,11 @@ class TextProtobufParser {
         }
         return code_point
     }
+
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     ////     util
     #skipWhiteSpace() {
-        while(this.#hasNext() && this.#isNextWhiteSpace()) {
+        while (this.#hasNext() && this.#isNextWhiteSpace()) {
             this.#skipNext()
         }
     }
