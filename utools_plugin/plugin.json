@@ -1,0 +1,20 @@
+{
+  "main": "index.html",
+  "logo": "logo.png",
+  "features": [
+    {
+      "code": "pretty",
+      "explain": "美化 Protobuf ShortDebugString() 及其他 TextFormat 产生的输出",
+      "cmds": [
+        "ProtoBufTextFormatPretty",
+        "TextProtoPretty"
+      ]
+    }
+  ],
+  "pluginSetting": {
+    "single": false
+  },
+  "development": {
+    "main": "http://localhost:63342/TextProtobufParserJs/utools_plugin/index.html?_ijt=bh26miijta828us003ov5427ss&_ij_reload=RELOAD_ON_SAVE"
+  }
+}

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Text protobuf parser</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            background-color: #1E1E1E
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        .text-box {
+            height: 100%;
+            padding: 10px 10px 10px 30px;
+            border-radius: 1px;
+            resize: none;
+            outline: none;
+            border: 2px solid #666666;
+            color: #FFFFFF;
+            background-color: transparent;
+        }
+
+        .fab-btn {
+            width: 50px;
+            height: 100%;
+            background: #0467a8;
+            color: #EEEEEE;
+            text-align: center;
+            margin-left: 5px;
+            display: inline;
+            border: none;
+            cursor: pointer;
+            float: right;
+        }
+
+        .fab-btn:disabled {
+            background-color: #303030;
+            color: #666666;
+        }
+
+    </style>
+    <script src="./text_protobuf_parser.js"></script>
+    <script>
+        function parseTextProto() {
+            const src = document.getElementById('text_proto_src').value
+            const result_ta = document.getElementById('parse_result')
+            const btn_open_in_json = document.getElementById('btn_open_in_json')
+
+            result_ta.value = ''
+            result_ta.style.color = '#FFFFFF'
+            btn_open_in_json.disabled = true
+
+            if (!src) {
+                return
+            }
+
+            const parser = new TextProtobufParser()
+            let msg = {}
+            try {
+                parser.parseInto(src, msg)
+                btn_open_in_json.disabled = false
+            } catch (e) {
+                result_ta.value = e + '\n\n'
+                result_ta.style.color = 'orangered'
+            } finally {
+                result_ta.value += JSON.stringify(msg, JsonStringifyReplacer, 2)
+            }
+        }
+
+        function openInJsonEditor() {
+            const result_ta = document.querySelector('#parse_result')
+            utools.redirect('Json', result_ta.value)
+        }
+
+        function copyResult() {
+            const result_ta = document.querySelector('#parse_result')
+            result_ta.select()
+            document.execCommand('Copy')
+        }
+    </script>
+</head>
+<body>
+
+<div style="position: absolute; width: 100vw; height:100vh; display: flex; flex-direction: column">
+    <div style="height: 30px">
+        <button accesskey="c" class="fab-btn" onclick="copyResult()" title="复制输出(C)">Copy</button>
+        <button accesskey="j" class="fab-btn" disabled id="btn_open_in_json" onclick="openInJsonEditor()"
+                title="用Json编辑器打开(J)">Json
+        </button>
+    </div>
+    <div style="flex: 1; display: flex">
+        <textarea autofocus class="text-box" id="text_proto_src" oninput="parseTextProto()" placeholder="input here..."
+                  style="flex: 50%"></textarea>
+        <textarea class="text-box" id="parse_result" readonly style="flex: 50%"></textarea>
+    </div>
+
+</div>
+
+</body>
+</html>
