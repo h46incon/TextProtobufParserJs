@@ -7,7 +7,7 @@
         .text-box {
             height: 100%;
             padding: 10px 10px 10px 30px;
-            border-radius: 0px;
+            border-radius: 0;
             resize: none;
             outline: none;
             border: 2px solid rgb(238, 238, 238);
@@ -18,24 +18,28 @@
         function parseTextProto() {
             const src = document.querySelector('#text_proto_src').value
             const out_container = document.querySelector('#parse_result')
+            out_container.value = ''
             console.log('src: ' + src)
             const parser = new TextProtobufParser()
+            let msg = {}
             try {
-                const msg = parser.parse(src)
-                out_container.value = JSON.stringify(msg, JsonStringifyReplacer, 2)
+                parser.parseInto(src, msg)
+                // or msg = parser.parse(src)
+                // but will not get half-parsed result if parse failed
             } catch (e) {
-                out_container.value = e.message
-                throw e
+                out_container.value = e + '\n\n'
+            } finally {
+                out_container.value += JSON.stringify(msg, JsonStringifyReplacer, 2)
             }
         }
     </script>
 </head>
 <body>
-<div id="main" style="width: 100%; height: 100%; position: absolute">
+<div id="main" style="width: 90%; height: 90%; position: absolute">
     <button onclick="parseTextProto()" style="display: block">
-        解析
+        Parse
     </button>
-    <textarea id="text_proto_src" class="text-box" style="width: 40%; display: inline-block" placeholder="在此输入字符串..." ></textarea>
+    <textarea id="text_proto_src" class="text-box" style="width: 40%; display: inline-block" placeholder="input here..." ></textarea>
     <textarea id="parse_result" class="text-box" style="width: 40%; display: inline-block"></textarea>
 </div>
 </body>
