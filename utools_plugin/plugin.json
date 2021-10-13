@@ -3,11 +3,33 @@
   "logo": "logo.png",
   "features": [
     {
-      "code": "pretty",
+      "code": "main-pretty",
       "explain": "美化 Protobuf ShortDebugString() 及其他 TextFormat 产生的输出",
       "cmds": [
-        "ProtoBufTextFormatPretty",
-        "TextProtoPretty"
+        "ProtoBuf TextFormat 美化",
+        "TextProto 美化"
+      ]
+    },
+    {
+      "code": "input-pretty",
+      "cmds": [
+        {
+          "type": "regex",
+          "label": "TextProto 美化",
+          "match": "/.+:.+/",
+          "minLength": 3
+        }
+      ]
+    },
+    {
+      "code": "input-openInJsonEditor",
+      "cmds": [
+        {
+          "type": "regex",
+          "label": "TextProto 转 JSON",
+          "match": "/.+:.+/",
+          "minLength": 3
+        }
       ]
     }
   ],

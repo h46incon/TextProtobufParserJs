@@ -64,24 +64,45 @@
             try {
                 parser.parseInto(src, msg)
                 btn_open_in_json.disabled = false
+                return true
             } catch (e) {
                 result_ta.value = e + '\n\n'
                 result_ta.style.color = 'orangered'
+                return false
             } finally {
                 result_ta.value += JSON.stringify(msg, JsonStringifyReplacer, 2)
             }
         }
 
         function openInJsonEditor() {
-            const result_ta = document.querySelector('#parse_result')
+            const result_ta = document.getElementById('parse_result')
             utools.redirect('Json', result_ta.value)
         }
 
         function copyResult() {
-            const result_ta = document.querySelector('#parse_result')
+            const result_ta = document.getElementById('parse_result')
             result_ta.select()
             document.execCommand('Copy')
         }
+
+        utools.onPluginEnter(({code, type, payload}) => {
+            const code_items = code.split('-')
+            if (code_items[0] !== 'input') {
+                return
+            }
+            if (!payload) {
+                return
+            }
+            const src_ta = document.getElementById('text_proto_src')
+            src_ta.value = payload
+            const parse_suc = parseTextProto()
+
+            if (code_items[1] === 'openInJsonEditor') {
+                if (parse_suc) {
+                    openInJsonEditor()
+                }
+            }
+        })
     </script>
 </head>
 <body>
