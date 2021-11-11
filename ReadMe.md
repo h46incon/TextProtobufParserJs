@@ -24,7 +24,7 @@ Parse result is an `Object` value that contains all message fields. The object's
 
 - `Number`, `BigInt`.
 - `true`, `false`.
-- `TextProtobufParser.EnumValue` if value is enum. Note: text proto could not distinguish whether a value is true/false/nan or enum with these name.
+- `TextProtobufParser.EnumValue` if value is enum. **Note:** text proto could not distinguish whether a value is true/false/nan or enum with these name.
 - `String` if field is string and can be parsed into utf-8 string.
 - `Uint8Array` if string but not utf-8, i.e. the original protobuf field is `bytes`.
 - `Array`  if field is `repeated`

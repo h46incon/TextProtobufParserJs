@@ -43,10 +43,11 @@ function JsonStringifyReplacer(key, value) {
     } else if (typeof (value) === 'bigint') {
         return value.toString()
     } else if (value instanceof Uint8Array) {
+        const bytes_output_prefix = '(BytesBase64)'
         if (typeof window === 'undefined') {
-            return Buffer.from(value).toString('base64')
+            return bytes_output_prefix + Buffer.from(value).toString('base64')
         } else {
-            return window.btoa(String.fromCharCode.apply(null, value));
+            return bytes_output_prefix + window.btoa(String.fromCharCode.apply(null, value));
         }
     } else {
         return value
