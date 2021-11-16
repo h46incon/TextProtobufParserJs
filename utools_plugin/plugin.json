@@ -16,7 +16,7 @@
         {
           "type": "regex",
           "label": "TextProto 美化",
-          "match": "/.+:.+/",
+          "match": "/^[\\s]*[\\w]+[\\s]*[:{\\[].+/",
           "minLength": 3
         }
       ]
@@ -27,7 +27,7 @@
         {
           "type": "regex",
           "label": "TextProto 转 JSON",
-          "match": "/.+:.+/",
+          "match": "/^[\\s]*[\\w]+[\\s]*[:{\\[].+/",
           "minLength": 3
         }
       ]
