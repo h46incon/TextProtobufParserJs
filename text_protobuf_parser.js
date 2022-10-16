@@ -35,12 +35,14 @@ class EnumValue {
     constructor(v) {
         this.v = v
     }
+
+    toJSON() {
+        return this.v
+    }
 }
 
 function JsonStringifyReplacer(key, value) {
-    if (value instanceof EnumValue) {
-        return value.v
-    } else if (typeof (value) === 'bigint') {
+    if (typeof (value) === 'bigint') {
         return value.toString()
     } else if (value instanceof Uint8Array) {
         const bytes_output_prefix = '(BytesBase64)'
